@@ -1,9 +1,8 @@
 # Gavin-The-Fish
 **Gavin the Fish** is a handy but snarky little automation expert built with 11L Conversational AI, FastAPI, Raycast and some nifty scripts.
 
-> -[!Note] 🚧 Work in progress!
->
-> Just testing some cheeky tricks!
+> [!Warning] 
+> 🚧 Work in progress! Just testing some cheeky tricks!
 
 ## Setup
 1. Clone the repository
