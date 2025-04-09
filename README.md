@@ -33,7 +33,7 @@
      curl -X GET "http://localhost:8000/confetti" \
      -H "X-API-Key: the-api-key-you-defined-in-your-dotenv"
 
-     curl -X GET "https://a635-58-96-38-129.ngrok-free.app" \
+     curl -X GET "https://a635-58-96-38-129.ngrok-free.app/confetti" \
      -H "X-API-Key: the-api-key-you-defined-in-your-dotenv"
 
     ```
