@@ -16,11 +16,11 @@ class StatusItem(BaseModel):
     description: str
     pub_date: str
 
-@router.get("/", response_model=List[StatusItem])
+@router.get("", response_model=List[StatusItem])
 async def check_xi_status():
     """Get ElevenLabs operational status details"""
     try:
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(follow_redirects=True) as client:
             # Fetch the RSS feed
             response = await client.get("https://status.elevenlabs.io/feed.rss")
             response.raise_for_status()
@@ -52,5 +52,11 @@ async def check_xi_status():
                 ))
             
             return items
+    except httpx.HTTPStatusError as e:
+        raise HTTPException(status_code=e.response.status_code, detail=f"HTTP error occurred: {str(e)}")
+    except httpx.RequestError as e:
+        raise HTTPException(status_code=503, detail=f"Failed to connect to ElevenLabs status service: {str(e)}")
+    except ET.ParseError as e:
+        raise HTTPException(status_code=500, detail=f"Failed to parse XML response: {str(e)}")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e)) 
+        raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}") 

@@ -1,7 +1,13 @@
 from fastapi import APIRouter, HTTPException
-import subprocess
-import os
+import sys
+from playwright.async_api import async_playwright
 from pydantic import BaseModel
+from rich.console import Console
+from rich.panel import Panel
+from ..tool_logger import log_user_operation
+
+# Initialize Rich console
+console = Console()
 
 router = APIRouter(
     prefix="/gift-credits",
@@ -9,20 +15,142 @@ router = APIRouter(
 )
 
 class GiftCreditsRequest(BaseModel):
-    total_credits: str
+    total_credits: int
 
-@router.post("/")
-async def gift_credits(request: GiftCreditsRequest):
+def show_error(message):
+    print(f"Error: {message}", file=sys.stderr)
+    raise HTTPException(status_code=500, detail=message)
+
+@router.post("")
+@log_user_operation("Gift Credits")
+async def gift_credits(request: GiftCreditsRequest, operation_logger):
     """Gift credits to a user"""
     try:
-        script_path = os.path.join(os.path.dirname(__file__), "../../../gift_credits.py")
-        result = subprocess.run(
-            [script_path, request.total_credits],
-            capture_output=True,
-            text=True
-        )
-        if result.returncode != 0:
-            raise HTTPException(status_code=500, detail=result.stderr)
-        return {"message": "Success", "output": result.stdout}
+        console.print(Panel.fit(
+            "[bold green]Starting Gift Credits script...[/bold green]",
+            border_style="green"
+        ))
+        
+        # Validate credits
+        if request.total_credits <= 0:
+            show_error("Please provide a positive number of credits")
+        
+        credits = str(request.total_credits)
+        operation_logger.add_step(f"Gifting {credits} credits")
+        console.print(f"[bold]Gifting {credits} credits...[/bold]")
+        
+        async with async_playwright() as p:
+            # Connect to existing Chrome instance
+            operation_logger.add_step("Connecting to Chrome")
+            console.print("[cyan]Connecting to Chrome...[/cyan]")
+            browser = await p.chromium.connect_over_cdp("http://127.0.0.1:9222")
+            
+            # Get all contexts
+            contexts = browser.contexts
+            if not contexts:
+                show_error("No browser contexts found")
+            
+            # Find Zendesk tab and get email
+            operation_logger.add_step("Searching for Zendesk tab")
+            console.print("[cyan]Searching for Zendesk tab...[/cyan]")
+            user_email = None
+            for context in contexts:
+                pages = context.pages
+                for page in pages:
+                    url = page.url
+                    console.print(f"[dim]Checking tab: {url}[/dim]")
+                    if 'zendesk.com' in url:
+                        operation_logger.add_step("Found Zendesk tab, looking for email")
+                        console.print("[green]Found Zendesk tab, looking for email element...[/green]")
+                        try:
+                            email_element = await page.wait_for_selector('[data-test-id="email-value-test-id"]', timeout=10000)
+                            user_email = await email_element.text_content()
+                            user_email = user_email.strip()
+                            operation_logger.add_step(f"Found user email: {user_email}")
+                            console.print(f"[bold green]Found user email: {user_email}[/bold green]")
+                            break
+                        except Exception as e:
+                            operation_logger.add_step(f"Error finding email element: {str(e)}")
+                            console.print(f"[yellow]Error finding email element: {str(e)}[/yellow]")
+                
+                if user_email:
+                    break
+            
+            if not user_email:
+                show_error("Please open a Zendesk ticket first")
+            
+            # Open ElevenLabs admin directly to user page
+            url = f"https://elevenlabs.io/app/th6x-admin/user-info?lookup={user_email}&tab=subscription"
+            operation_logger.add_step(f"Opening ElevenLabs admin: {url}")
+            console.print(f"[cyan]Opening ElevenLabs admin: {url}[/cyan]")
+            
+            # Create a new page in the first context
+            page = await contexts[0].new_page()
+            
+            # Set a longer timeout for navigation
+            page.set_default_timeout(60000)
+            await page.goto(url, wait_until="domcontentloaded")
+            
+            # Get the main frame (frame 0)
+            main_frame = page.frames[0]
+            
+            # Wait for buttons to be available
+            operation_logger.add_step("Waiting for buttons to load")
+            console.print("[cyan]Waiting for buttons to load...[/cyan]")
+            try:
+                await main_frame.wait_for_function("""
+                    () => {
+                        const buttons = document.querySelectorAll('button');
+                        return buttons.length >= 23;
+                    }
+                """, timeout=30000)
+            except Exception as e:
+                operation_logger.add_step(f"Timeout waiting for buttons: {str(e)}")
+                show_error(f"Timed out waiting for buttons to load: {str(e)}")
+            
+            # Get all buttons in the main frame
+            buttons = await main_frame.query_selector_all("button")
+            if len(buttons) <= 22:
+                show_error(f"Not enough buttons found (need at least 23, found {len(buttons)})")
+            
+            # Click the Gift Credits button (index 22)
+            operation_logger.add_step("Clicking Gift Credits button")
+            console.print("[cyan]Clicking Gift Credits button...[/cyan]")
+            await buttons[22].click()
+            console.print("[green]Clicked Gift Credits button[/green]")
+            
+            # Enter credits
+            operation_logger.add_step("Waiting for credits input field")
+            console.print("[cyan]Waiting for credits input field...[/cyan]")
+            # Wait for the modal to appear and be visible
+            modal = await page.wait_for_selector('div[role="dialog"]', state="visible", timeout=10000)
+            if not modal:
+                show_error("Modal dialog not found")
+            
+            # Wait for the input field to be visible and enabled
+            # Find and fill the input field using aria-label
+            input_field = await modal.query_selector('input[aria-label="The number of credits to gift to the workspace"]')
+            if not input_field:
+                show_error("Credits input field not found in modal")
+            
+            # Try to focus and click the input field first
+            await input_field.click()
+            await input_field.fill(credits)
+            operation_logger.add_step(f"Entered {credits} credits")
+            console.print(f"[bold green]Entered {credits} credits[/bold green]")
+            
+            return {
+                "status": "success",
+                "message": f"Successfully gifted {credits} credits to {user_email}",
+                "user_email": user_email
+            }
+    
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e)) 
+        operation_logger.add_step(f"Error: {str(e)}")
+        console.print(f"[bold red]Uncaught error in main function:[/bold red] {str(e)}")
+        show_error(f"Error: {str(e)}")
+    finally:
+        if 'page' in locals():
+            await page.close()
+        if 'browser' in locals():
+            await browser.close() 

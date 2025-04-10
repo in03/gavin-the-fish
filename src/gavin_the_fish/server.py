@@ -4,8 +4,14 @@ from fastapi.exceptions import RequestValidationError, HTTPException
 import importlib
 import os
 import pkgutil
-from .middleware import verify_api_key
+from .middleware import verify_api_key, log_request_metadata
 from .exceptions import ResourceNotFoundError, BadRequestError
+from rich.traceback import install
+from rich.console import Console
+
+# Initialize Rich console and install traceback handler
+console = Console()
+install(show_locals=True, width=console.width)
 
 app = FastAPI(
     title="Gavin the Fish API",
@@ -13,8 +19,9 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Add API key middleware
-app.middleware("http")(verify_api_key)
+# Add middleware in order of execution
+app.middleware("http")(log_request_metadata)  # Log request metadata first
+app.middleware("http")(verify_api_key)  # Then verify API key
 
 def create_error_response(status_code: int, detail: str) -> JSONResponse:
     return JSONResponse(
