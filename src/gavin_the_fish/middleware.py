@@ -9,7 +9,6 @@ from rich.panel import Panel
 import logging
 import os
 from pathlib import Path
-from .tool_logger import OperationLogger
 
 # Initialize Rich console
 console = Console()
@@ -32,32 +31,16 @@ def setup_logging():
     )
     return logging.getLogger(__name__)
 
+# Get logger instance
 logger = setup_logging()
 
-# List of headers to sanitize
-SENSITIVE_HEADERS = {
-    settings.API_KEY_HEADER.lower(),  # API key header
-    'authorization',  # Authorization header
-    'cookie',  # Cookie header
-    'set-cookie',  # Set-Cookie header
-    'x-api-key',  # Common API key header
-    'x-auth-token',  # Common auth token header
-}
-
 def sanitize_headers(headers: dict) -> dict:
-    """Sanitize sensitive headers by masking their values"""
-    sanitized = {}
-    for header, value in headers.items():
-        if header.lower() in SENSITIVE_HEADERS:
-            # Get length of value and calculate asterisk portion
-            if value:
-                # Show first and last 2 chars, mask middle with asterisks
-                sanitized[header] = value[:4] + '...' + value[-4:]
-            else:
-                sanitized[header] = ''
-        else:
-            sanitized[header] = value
-    return sanitized
+    """Sanitize headers by removing sensitive information"""
+    sensitive_headers = ['authorization', 'cookie', 'set-cookie', 'x-api-key']
+    return {
+        k: v for k, v in headers.items()
+        if k.lower() not in sensitive_headers
+    }
 
 def format_log_entry(metadata: dict, stdout: bool = True) -> str:
     """Format metadata into a readable log entry"""
@@ -93,10 +76,6 @@ Request Details:
 
 async def log_request_metadata(request: Request, call_next):
     """Middleware to log request metadata including headers"""
-    # Create operation logger for this request
-    operation_logger = OperationLogger("Request Logging", quick=True)
-    operation_logger.start()
-    
     try:
         # Get request metadata
         metadata = {
@@ -141,50 +120,42 @@ async def log_request_metadata(request: Request, call_next):
         
         # Process the request
         response = await call_next(request)
-        
-        operation_logger.complete()
         return response
     except Exception as e:
-        operation_logger.error(e)
+        print(f"Error in request logging: {str(e)}")
         raise
 
 async def verify_api_key(request: Request, call_next):
-    """Middleware to verify API key in request headers"""
-    # Create operation logger for this request
-    operation_logger = OperationLogger("API Key Verification", quick=True)
-    operation_logger.start()
-    
+    """Middleware to verify API key"""
     try:
         # Get API key from header
-        api_key = request.headers.get(settings.API_KEY_HEADER)
+        api_key = request.headers.get("X-API-Key")
         
         if not api_key:
-            operation_logger.add_step("API key is missing")
-            operation_logger.error(Exception("API key is missing"))
+            print("API key is missing")
             return JSONResponse(
                 status_code=401,
                 content={
                     "status_code": 401,
                     "detail": "API key is missing"
-                },
-                headers={"WWW-Authenticate": "API-Key"}
-            )
-            
-        if api_key != settings.API_KEY:
-            operation_logger.add_step("Invalid API key")
-            operation_logger.error(Exception("Invalid API key"))
-            return JSONResponse(
-                status_code=403,
-                content={
-                    "status_code": 403,
-                    "detail": "Invalid API key"
-                },
-                headers={"WWW-Authenticate": "API-Key"}
+                }
             )
         
-        operation_logger.add_step("API key verified")
-        operation_logger.complete()
+        # Verify API key
+        if api_key != settings.API_KEY:
+            print("Invalid API key")
+            return JSONResponse(
+                status_code=401,
+                content={
+                    "status_code": 401,
+                    "detail": "Invalid API key"
+                }
+            )
+        
+        # API key is valid, proceed with request
+        print("API key verified")
         return await call_next(request)
+        
     except Exception as e:
-        operation_logger.error(e)
+        print(f"Error in API key verification: {str(e)}")
         raise 

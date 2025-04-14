@@ -11,7 +11,7 @@ from rich.console import Console
 
 # Initialize Rich console and install traceback handler
 console = Console()
-install(show_locals=True, width=console.width)
+install(show_locals=False, width=console.width)
 
 app = FastAPI(
     title="Gavin the Fish API",
@@ -35,18 +35,22 @@ def create_error_response(status_code: int, detail: str) -> JSONResponse:
 # Global exception handlers
 @app.exception_handler(ResourceNotFoundError)
 async def resource_not_found_handler(request: Request, exc: ResourceNotFoundError):
+    print(f"Resource not found: {exc.detail}")
     return create_error_response(exc.status_code, exc.detail)
 
 @app.exception_handler(BadRequestError)
 async def bad_request_handler(request: Request, exc: BadRequestError):
+    print(f"Bad request: {exc.detail}")
     return create_error_response(exc.status_code, exc.detail)
 
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
+    print(f"HTTP exception: {exc.detail}")
     return create_error_response(exc.status_code, exc.detail)
 
 @app.exception_handler(404)
 async def not_found_handler(request: Request, exc: Exception):
+    print("Not found")
     return create_error_response(404, "Not Found")
 
 @app.exception_handler(405)
@@ -55,10 +59,12 @@ async def method_not_allowed_handler(request: Request, exc: Exception):
 
 @app.exception_handler(500)
 async def internal_server_error_handler(request: Request, exc: Exception):
+    print(f"Internal server error: {str(exc)}")
     return create_error_response(500, "Internal Server Error")
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    print(f"Validation error: {str(exc)}")
     return create_error_response(422, "Validation Error")
 
 # Dynamically import and include all routers

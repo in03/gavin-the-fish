@@ -1,7 +1,6 @@
 from fastapi import APIRouter, HTTPException, BackgroundTasks
 from pydantic import BaseModel
 import subprocess
-from ..tool_logger import log_user_operation, OperationLogger
 from ..job_registry import job_registry, JobStatus
 from rich.console import Console
 import asyncio
@@ -26,10 +25,10 @@ class JobStatusResponse(BaseModel):
     result: Optional[dict] = None
     error: Optional[str] = None
 
-async def run_goose_command(job_id: str, target: str, operation_logger: OperationLogger):
+async def run_goose_command(job_id: str, target: str):
     """Background task to run Goose command and update job status"""
     try:
-        operation_logger.add_step(f"Starting Goose command for target: {target}")
+        print(f"Starting Goose command for target: {target}")
         
         # Update job status to running
         job_registry.update_job(job_id, JobStatus.RUNNING)
@@ -42,7 +41,7 @@ async def run_goose_command(job_id: str, target: str, operation_logger: Operatio
             check=True
         )
         
-        operation_logger.add_step("Command completed successfully")
+        print("Command completed successfully")
         
         # Update job with success and result
         job_registry.update_job(
@@ -56,14 +55,14 @@ async def run_goose_command(job_id: str, target: str, operation_logger: Operatio
         )
         
     except subprocess.CalledProcessError as e:
-        operation_logger.add_step(f"Command failed with exit code {e.returncode}")
+        print(f"Command failed with exit code {e.returncode}")
         job_registry.update_job(
             job_id,
             JobStatus.FAILED,
             error=f"Command failed: {e.stderr.strip()}"
         )
     except Exception as e:
-        operation_logger.add_step(f"Unexpected error: {str(e)}")
+        print(f"Unexpected error: {str(e)}")
         job_registry.update_job(
             job_id,
             JobStatus.FAILED,
@@ -71,11 +70,9 @@ async def run_goose_command(job_id: str, target: str, operation_logger: Operatio
         )
 
 @router.post("")
-@log_user_operation("Run Goose MCP Command")
 async def start_goose_command(
     request: GooseRequest,
-    background_tasks: BackgroundTasks,
-    operation_logger: OperationLogger = None
+    background_tasks: BackgroundTasks
 ) -> JobStatusResponse:
     """Start a Goose MCP command as a background job"""
     try:
@@ -92,16 +89,17 @@ async def start_goose_command(
         background_tasks.add_task(
             run_goose_command,
             job.job_id,
-            request.target,
-            operation_logger
+            request.target
         )
         
         return JobStatusResponse(
             job_id=job.job_id,
-            status=job.status
+            status=job.status.value,
+            result=job.result,
+            error=job.error
         )
-        
     except Exception as e:
+        print(f"Error creating job: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/status/{job_id}")

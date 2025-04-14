@@ -1,6 +1,5 @@
 from fastapi import APIRouter, HTTPException, BackgroundTasks
 from pydantic import BaseModel
-from ..tool_logger import log_user_operation, OperationLogger
 from ..job_registry import job_registry, JobStatus
 from rich.console import Console
 from typing import Optional
@@ -36,11 +35,9 @@ def calculate_fibonacci(n: int) -> int:
         a, b = b, a + b
     return b
 
-async def run_fibonacci_calculation(job_id: str, n: int, operation_logger: OperationLogger):
+async def run_fibonacci_calculation(job_id: str, n: int):
     """Background task to calculate Fibonacci number and update job status"""
     try:
-        operation_logger.add_step(f"Starting Fibonacci calculation for n={n}")
-        
         # Update job status to running
         job_registry.update_job(job_id, JobStatus.RUNNING)
         
@@ -50,8 +47,6 @@ async def run_fibonacci_calculation(job_id: str, n: int, operation_logger: Opera
             
         # Calculate Fibonacci number
         result = calculate_fibonacci(n)
-        
-        operation_logger.add_step("Calculation completed successfully")
         
         # Update job with success and result
         job_registry.update_job(
@@ -64,26 +59,22 @@ async def run_fibonacci_calculation(job_id: str, n: int, operation_logger: Opera
         )
         
     except ValueError as e:
-        operation_logger.add_step(f"Validation error: {str(e)}")
         job_registry.update_job(
             job_id,
             JobStatus.FAILED,
             error=str(e)
         )
     except Exception as e:
-        operation_logger.add_step(f"Unexpected error: {str(e)}")
         job_registry.update_job(
             job_id,
             JobStatus.FAILED,
             error=str(e)
         )
 
-@router.post("/")
-@log_user_operation("Calculate Fibonacci")
+@router.post("")
 async def start_fibonacci_calculation(
     request: FibonacciRequest,
-    background_tasks: BackgroundTasks,
-    operation_logger: OperationLogger = None
+    background_tasks: BackgroundTasks
 ) -> JobStatusResponse:
     """Start a Fibonacci calculation as a background job"""
     try:
@@ -100,15 +91,15 @@ async def start_fibonacci_calculation(
         background_tasks.add_task(
             run_fibonacci_calculation,
             job.job_id,
-            request.n,
-            operation_logger
+            request.n
         )
         
         return JobStatusResponse(
             job_id=job.job_id,
-            status=job.status
+            status=job.status.value,
+            result=job.result,
+            error=job.error
         )
-        
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
