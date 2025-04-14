@@ -1,6 +1,5 @@
 from fastapi import APIRouter, HTTPException
 import subprocess
-import os
 from ..exceptions import BadRequestError
 
 router = APIRouter(

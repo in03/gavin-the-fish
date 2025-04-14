@@ -58,4 +58,22 @@ async def cancel_job(job_id: str) -> JobStatusResponse:
         "created_at": job.created_at.isoformat(),
         "updated_at": job.updated_at.isoformat()
     }
-    return JobStatusResponse(**job_info) 
+    return JobStatusResponse(**job_info)
+
+@router.delete("/{job_id}")
+async def delete_job(job_id: str) -> dict:
+    """Delete a specific job by ID"""
+    job = job_registry.get_job(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    
+    # Remove the job from the registry
+    del job_registry._jobs[job_id]
+    return {"message": f"Job {job_id} deleted successfully"}
+
+@router.delete("")
+async def delete_all_jobs() -> dict:
+    """Delete all jobs"""
+    job_count = len(job_registry._jobs)
+    job_registry._jobs.clear()
+    return {"message": f"Deleted {job_count} jobs"} 
