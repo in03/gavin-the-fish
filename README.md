@@ -1,5 +1,7 @@
 # Gavin-The-Fish
-**Gavin the Fish** is a handy but snarky little automation expert built with 11L Conversational AI, FastAPI, Raycast and some nifty scripts.
+**Gavin the Fish** is a snarky Siri style assistant proof of concept. 
+
+Gavin utilises a tool bridge to expose local scripts, MCP servers and more to 11 Labs Conversational AI for tool calling.
 
 > [!Warning] 
 > 🚧 Work in progress! Just testing some cheeky tricks!
@@ -66,33 +68,24 @@ The job management system provides a way to handle long-running tasks in a way t
 
 ### Roadmap
 
-#### Phase 1: Core Job Management (Current)
+#### Phase 1: Job Management
 - [x] In-memory job registry
 - [x] Basic job lifecycle states
 - [x] Human-readable status messages
 - [x] Unified job status endpoint
 - [x] Integration with existing tools
-- [ ] Job cleanup for expired jobs
-- [ ] Job timeout handling
+- [ ] Automatic convert blocking tasks to jobs after timeout
+- [ ] Handle job failure due to timeouts
+- [x] Native job status notifications
 
-#### Phase 2: Enhanced Job Features
-- [ ] Job progress tracking
-- [ ] Job dependencies
-- [ ] Job retries
-- [ ] Job priorities
-- [ ] Job tags for better organization
-- [ ] Job search and filtering
+#### Phase 2: MCP Integration via MCP Bridge
+- [ ] Implement BYO client support (Goose, Claude)
+- [ ] Implement server management
 
-#### Phase 3: Persistence and Scalability
-- [ ] SQLite backend for job storage
-- [ ] Job history and audit logging
-- [ ] Job statistics and metrics
-- [ ] Job scheduling
-
-#### Phase 4: Advanced Features
-- [ ] Job templates
-- [ ] Job chaining
-- [ ] Job validation
+#### Phase 3: Frontend
+- [ ] Native GUI integration (Tauri, Electron, rumps)
+- [ ] Assistant-style UX, wakeword trigger and minimal UI
+- [ ] Standard chat UX, transcript, text entry and voice chat
 
 ### Design Principles
 1. **LLM-Friendly**: Status messages and responses are designed to be easily understood by LLMs
@@ -117,4 +110,6 @@ curl http://localhost:8000/jobs/{job_id}
 # Cancel a job
 curl -X POST http://localhost:8000/jobs/{job_id}/cancel
 ```
+
+## Roadmap
 

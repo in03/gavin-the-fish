@@ -5,6 +5,7 @@ from dataclasses import dataclass, field, asdict
 import random
 import string
 from collections import defaultdict
+import rumps
 
 class JobStatus(str, Enum):
     PENDING = "pending"
@@ -30,6 +31,9 @@ class Job:
     cancelable: bool = False
     on_status_change: Optional[Callable[['Job'], None]] = None
     context: Optional[Dict[str, Any]] = None
+    notify_on_completion: bool = False
+    notification_title: Optional[str] = None
+    notification_message: Optional[str] = None
 
     def update(self, status: JobStatus, result: Optional[Dict[str, Any]] = None, error: Optional[str] = None):
         """Update job status and related fields"""
@@ -40,6 +44,19 @@ class Job:
         
         if self.on_status_change:
             self.on_status_change(self)
+            
+        # Send notification if job is complete and notifications are enabled
+        if self.notify_on_completion and status in [JobStatus.SUCCESS, JobStatus.FAILED]:
+            self._send_notification()
+
+    def _send_notification(self):
+        """Send a native notification for job completion"""
+        try:
+            title = self.notification_title or f"{self.tool_name} job completed"
+            message = self.notification_message or self.get_status_message()
+            rumps.notification(title, subtitle="Gavin the Fish", message=message)
+        except Exception as e:
+            print(f"Failed to send notification: {e}")
 
     def get_status_message(self) -> str:
         """Generate a human-readable status message for the job."""
@@ -93,7 +110,10 @@ class JobRegistry:
         owner: Optional[str] = None,
         conversation_id: Optional[str] = None,
         cancelable: bool = False,
-        context: Optional[Dict[str, Any]] = None
+        context: Optional[Dict[str, Any]] = None,
+        notify_on_completion: bool = False,
+        notification_title: Optional[str] = None,
+        notification_message: Optional[str] = None
     ) -> Job:
         """Create a new job"""
         job_id = self._generate_job_id()
@@ -104,7 +124,10 @@ class JobRegistry:
             owner=owner,
             conversation_id=conversation_id,
             cancelable=cancelable,
-            context=context
+            context=context,
+            notify_on_completion=notify_on_completion,
+            notification_title=notification_title,
+            notification_message=notification_message
         )
         self._jobs[job_id] = job
         print(f"Created job {job_id} for tool {tool_name}")

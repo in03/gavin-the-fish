@@ -12,6 +12,10 @@ Tool config:
       "duration_seconds": {
         "type": "integer",
         "description": "The duration in seconds. For example, 300 for 5 minutes. If the user doesn't specify a duration, ask them how long they want the timer to run for."
+      },
+      "notify_on_completion": {
+        "type": "boolean",
+        "description": "Whether to show a notification when the timer completes."
       }
     },
     "required": ["duration_seconds"]
@@ -32,6 +36,7 @@ router = APIRouter(
 
 class TimerRequest(JobRequest):
     duration_seconds: int
+    notify_on_completion: bool = False
 
 async def run_timer(job_id: str, duration_seconds: int):
     """Background task to run a timer"""
@@ -74,7 +79,10 @@ async def start_timer(request: TimerRequest, background_tasks: BackgroundTasks) 
             input=request.model_dump(),
             owner=request.owner,
             conversation_id=request.conversation_id,
-            cancelable=True
+            cancelable=True,
+            notify_on_completion=request.notify_on_completion,
+            notification_title="Timer Complete",
+            notification_message=f"Timer completed after {request.duration_seconds} seconds"
         )
         
         # Add as a background task
