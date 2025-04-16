@@ -6,17 +6,29 @@ import os
 import pkgutil
 from .middleware import verify_api_key, log_request_metadata
 from .exceptions import ResourceNotFoundError, BadRequestError
+from .agent import agent
 from rich.traceback import install
 from rich.console import Console
+from contextlib import asynccontextmanager
 
 # Initialize Rich console and install traceback handler
 console = Console()
 install(show_locals=False, width=console.width)
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Lifespan context manager for FastAPI app."""
+    # Startup
+    await agent.update_agent_tools()
+    yield
+    # Shutdown
+    pass
+
 app = FastAPI(
     title="Gavin the Fish API",
     description="API to expose Raycast scripts as webhook endpoints",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 # Add middleware in order of execution
@@ -68,9 +80,9 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     return create_error_response(422, "Validation Error")
 
 # Dynamically import and include all routers
-for module_info in pkgutil.iter_modules([os.path.join(os.path.dirname(__file__), "routers")]):
+for module_info in pkgutil.iter_modules([os.path.join(os.path.dirname(__file__), "tools")]):
     if not module_info.name.startswith('__'):
-        module = importlib.import_module(f".routers.{module_info.name}", package="gavin_the_fish")
+        module = importlib.import_module(f".tools.{module_info.name}", package="gavin_the_fish")
         if hasattr(module, 'router'):
             app.include_router(module.router)
 
