@@ -1,82 +1,56 @@
 """
-This router is used to start a timer for a specified duration.
-The timer is a background task that will run for the specified duration and then send a message to the user.
+Timer tool for setting countdown timers.
 
-Tool config:
-{
-  "name": "set_timer",
-  "description": "Starts a countdown timer for a specified duration. The timer will run in the background and notify when complete.",
-  "parameters": {
-    "type": "object",
-    "properties": {
-      "duration_seconds": {
-        "type": "integer",
-        "description": "The duration in seconds. For example, 300 for 5 minutes. If the user doesn't specify a duration, ask them how long they want the timer to run for."
-      },
-    },
-    "required": ["duration_seconds"]
-  }
-}
-
+This tool allows setting a timer for a specified duration and notifies when complete.
 """
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException
-from .decorator import tool, Parameter, JobSettings
 import asyncio
-import uuid
+import logging
+from typing import Dict, Any
+from .core import tool, Parameter, JobSettings
+from rich.console import Console
 
-router = APIRouter(
-    prefix="/timer",
-    tags=["timer"]
-)
+# Initialize console
+console = Console()
+
+logger = logging.getLogger(__name__)
 
 @tool(
-    name="set_timer",
-    description="Starts a countdown timer for a specified duration. The timer will run in the background and notify when complete.",
+    name="timer",
+    description="Set a countdown timer for a specified duration",
+    parameters=[
+        Parameter(
+            name="duration_seconds",
+            type="integer",
+            description="The duration in seconds. For example, 300 for 5 minutes.",
+            required=True
+        ),
+        Parameter(
+            name="message",
+            type="string",
+            description="Optional message to provide user when the timer completes",
+            required=False
+        )
+    ],
     settings=JobSettings(
-        sync_threshold=5,
+        sync_threshold=3,  # Set to 3 seconds to match the example case
         job_timeout=0,
         notify_title="Timer Complete",
-        notify_message="Timer completed after {duration_seconds} seconds",
+        notify_message="Timer for {duration_seconds} seconds has completed",
         cancelable=True
     )
 )
-async def run_timer(
-    job_id: str,
-    duration_seconds: int = Parameter(
-        description="The duration in seconds. For example, 300 for 5 minutes. If the user doesn't specify a duration, ask them how long they want the timer to run for.",
-        required=True
-    ),
-    notify_on_completion: bool = Parameter(
-        description="Whether to show a notification when the timer completes.",
-        required=False,
-        default=False
-    )
-) -> dict:
-    """Start a timer for the specified duration."""
+async def set_timer(duration_seconds: int, message: str = None) -> Dict[str, Any]:
+    """Set a timer for the specified duration."""
     try:
-        # Start the timer in the background
+        # Wait for the duration
         await asyncio.sleep(duration_seconds)
-        
-        # Return success response
+
         return {
             "status": "completed",
-            "duration_seconds": duration_seconds,
-            "notified": notify_on_completion
+            "duration": duration_seconds,
+            "message": message or f"Timer for {duration_seconds} seconds has completed"
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@router.post("/start")
-async def start_timer(
-    duration_seconds: int,
-    notify_on_completion: bool = False
-) -> dict:
-    """Start a timer endpoint."""
-    job_id = str(uuid.uuid4())
-    return await run_timer(job_id, duration_seconds, notify_on_completion)
-
-@router.get("/status/{job_id}")
-async def get_timer_status(job_id: str) -> dict:
-    """Get timer status endpoint."""
-    return {"status": "running", "job_id": job_id} 
+        logger.error(f"Error in timer: {str(e)}")
+        raise ValueError(f"Failed to set timer: {str(e)}")

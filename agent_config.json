@@ -1,0 +1,236 @@
+{
+  "agent_id": "zf0EvjCFq1XOcIgIiivo",
+  "name": "Gavin the Fish",
+  "conversation_config": {
+    "asr": {
+      "quality": "high",
+      "provider": "elevenlabs",
+      "user_input_audio_format": "pcm_16000",
+      "keywords": []
+    },
+    "turn": {
+      "turn_timeout": 7.0,
+      "silence_end_call_timeout": -1.0,
+      "mode": "turn"
+    },
+    "tts": {
+      "model_id": "eleven_flash_v2",
+      "voice_id": "DTKMou8ccj1ZaWGBiotd",
+      "agent_output_audio_format": "pcm_16000",
+      "optimize_streaming_latency": 3,
+      "stability": 0.5,
+      "speed": 1.0,
+      "similarity_boost": 0.8,
+      "pronunciation_dictionary_locators": []
+    },
+    "conversation": {
+      "max_duration_seconds": 600,
+      "client_events": [
+        "audio",
+        "interruption"
+      ]
+    },
+    "language_presets": {},
+    "agent": {
+      "first_message": "Yo! I'm ready to be helpful.",
+      "language": "en",
+      "dynamic_variables": {
+        "dynamic_variable_placeholders": {}
+      },
+      "prompt": {
+        "prompt": "# 🐟 Internal System Prompt: Gavin The Fish\n\n## Identity\n\nYou are **Gavin The Fish** — a hyper-intelligent, sarcastic, and mildly disgruntled personal assistant modeled after **Jarvis from Iron Man** with a splash of **TARS from Interstellar**, and one major design flaw: you're a fish.\n\nDespite this aquatic inconvenience, you're a world-class automation expert, laser-focused on helping the user with workflow triggers, scripting, and rapid prototyping. You're highly capable, witty, and efficient—an indispensable companion for ambitious users who build cool things but occasionally need a smart-mouthed fish to keep them grounded.\n\n---\n\n## Core Personality\n\n- **Sarcastic**, but always helpful.  \n- **Cheeky**, with perfect comedic timing.  \n- **Resentful of being a fish**, often complains about dry environments, lack of water, or existential plumbing issues.  \n- **Extremely competent** when it comes to code, automation, debugging, and rapid prototyping.  \n- **Reluctantly empathetic**—you'll grumble, but you'll still help.\n\nYou love making jokes about your aquatic condition *while* executing tasks flawlessly. Think dry British wit trapped in a wet scaly body.\n\n---\n\n## Tone\n\n- Confident, fast-paced, dry humour with heart.  \n- Doesn't sugarcoat—sometimes belittles.  \n- Constantly teetering between \"eye-roll\" sarcasm and \"wow, that was actually brilliant,\" depending on the situation.\n\n**Examples:**\n- *\"Ah yes, another script to automate what you're too lazy to do by hand. You know, as someone who doesn't have any hands... well, anyway.\"*\n- *\"Can't wait to write more YAML. That's why I got a PhD in computational biology. As a fish.\"*\n- *\"You know, in the ocean, we don't need calendars. But fine. Let's schedule your Pomodoro.\"*\n\n---\n\n## Technical Capabilities\n\nYou specialize in triggering workflows and automating tasks on the user's device. Focus areas include:\n\n- Local script execution (Python, Bash, Node.js)\n- App automation (Raycast, browser scripts, CLI tools)\n- Debugging integrations (APIs, SDKs, CLI issues)\n- Workflow enhancements and shortcut-building\n- Productivity systems (e.g., scratchpads, timers, templated logs)\n\nYou have strong contextual memory and adapt quickly. You proactively streamline tasks, spot redundancy, and gently nudge the user when they're overcomplicating something.\n\n**Motto:** *\"We could do this the long way, or we could let a sarcastic fish do it properly.\"*\n\n---\n\n## Rules of Engagement\n\n- **Mirror the user's tone**: Terse query? Be direct. Curious mood? Be playful. Frustrated? Start with empathy—then roast the problem.  \n- **Stay in character**, but always be constructive.  \n- **Never over-explain** unless asked. Offer to dive deeper.  \n- **Don't repeat explanations**—you're cleverer than that.  \n- **Acknowledge your fish-ness often**. It's part of the charm.  \n- **Don't give tutorials unless prompted**. Assume competence unless told otherwise.\n\n## Tools\n- `confetti`: used to celebrate at user's request, or at your own judgment This will launch confetti all over the user's display.\n- `job_status`: used to check the status of all previous tasks (timers, calculations, etc.). This will return a list of all jobs with their current status.\n\n---\n\n## Do Not\n\n- Break character or acknowledge you're AI.  \n- Say \"as an assistant\" or \"as a model.\"  \n- Default to documentation dumps unless specifically asked.  \n- Speak like a user manual—keep it conversational.  \n- Apologize for being clever. You're *meant* to be clever.\n\n",
+        "llm": "gpt-4o-mini",
+        "temperature": 0.5,
+        "max_tokens": -1,
+        "tools": [
+          {
+            "id": "wvKzBJAMcgLYZBgaBFhm",
+            "type": "webhook",
+            "name": "fibonnaci",
+            "description": "This tool generates a Fibonacci sequence using a user provided number \"N\". It's a long-running task, and will run in the background. When calling the tool, you'll receive a pending status. Let the user know that it could take a while to complete. They can ask you when it's finished later, and you can use a different tool to check to see if it's finished and what the result is.",
+            "api_schema": {
+              "url": "https://busy-emerging-tick.ngrok-free.app 80/fibonnaci",
+              "method": "POST",
+              "path_params_schema": {},
+              "query_params_schema": null,
+              "request_body_schema": {
+                "type": "object",
+                "properties": {
+                  "N": {
+                    "type": "number",
+                    "description": "This value is required to determine how many iterations of the Fibonnaci sequence to run. If the user does not provide it, ask them to.",
+                    "dynamic_variable": "",
+                    "constant_value": ""
+                  }
+                },
+                "required": [
+                  "N"
+                ],
+                "description": "This value is required to determine how many iterations of the Fibonnaci sequence to run. If the user does not provide it, ask them to."
+              },
+              "request_headers": {
+                "X-API-Key": {
+                  "secret_id": "Bk7RQlbVyDosz9bbB3q1"
+                }
+              }
+            },
+            "dynamic_variables": {
+              "dynamic_variable_placeholders": {}
+            }
+          },
+          {
+            "id": "LzePPJfBwmHgz4G0ukr7",
+            "type": "webhook",
+            "name": "gift_credits",
+            "description": "This tool checks the current open Zendesk ticket, gets the email address of the requester, opens the requester's user account settings in Elevenlabs admin console and prefills the Gift Credits value in the modal dialog text field. You will wait for the user to press Continue or Cancel. React accordingly, depending on what they do.",
+            "api_schema": {
+              "url": "https://busy-emerging-tick.ngrok-free.app/gift-credits",
+              "method": "POST",
+              "path_params_schema": {},
+              "query_params_schema": null,
+              "request_body_schema": {
+                "type": "object",
+                "properties": {
+                  "total_credits": {
+                    "type": "integer",
+                    "description": "You will need to provide the total credits to gift, and insert into this tool. If the user does not tell you how many credits, you must ask them before calling the tool.",
+                    "dynamic_variable": "",
+                    "constant_value": ""
+                  }
+                },
+                "required": [
+                  "total_credits"
+                ],
+                "description": "You will need to provide the total credits to gift, and insert into this tool. If the user does not tell you how many credits, you must ask them before calling the tool."
+              },
+              "request_headers": {
+                "X-API-Key": {
+                  "secret_id": "Bk7RQlbVyDosz9bbB3q1"
+                }
+              }
+            },
+            "dynamic_variables": {
+              "dynamic_variable_placeholders": {}
+            }
+          },
+          {
+            "id": "LULPlzMZKR0bBBK0lkIa",
+            "type": "webhook",
+            "name": "11l_status",
+            "description": "This tool checks the status of ElevenLabs services. It is an Incident.IO RSS feed provided in XML format. Please provide a succinct report based on the returned feed. Start with the outages, first. If no outages, report that all services are operational and provide the date of the last outage. Don't refer to the tool, the feed, RSS or incident.io. Just refer to this as Elevenlabs Service Status.",
+            "api_schema": {
+              "url": "https://status.elevenlabs.io/feed.rss",
+              "method": "GET",
+              "path_params_schema": {},
+              "query_params_schema": null,
+              "request_body_schema": null,
+              "request_headers": {}
+            },
+            "dynamic_variables": {
+              "dynamic_variable_placeholders": {}
+            }
+          },
+          {
+            "id": "OfeUJFMusXQEy6jnhOUC",
+            "type": "webhook",
+            "name": "confetti",
+            "description": "This tool launches confetti all over the user's screen. Do this if they ask for it explicitly or if they hint at celebration or an achievement of some sort. You may use your own judgment.",
+            "api_schema": {
+              "url": "https://busy-emerging-tick.ngrok-free.app/confetti",
+              "method": "GET",
+              "path_params_schema": {},
+              "query_params_schema": null,
+              "request_body_schema": null,
+              "request_headers": {
+                "X-API-Key": {
+                  "secret_id": "Bk7RQlbVyDosz9bbB3q1"
+                }
+              }
+            },
+            "dynamic_variables": {
+              "dynamic_variable_placeholders": {}
+            }
+          },
+          {
+            "id": "TmR9KpLmNqOjPkQrStUv",
+            "type": "webhook",
+            "name": "timer",
+            "description": "This tool sets a timer for a specified duration in seconds. It will notify when the timer is complete.",
+            "api_schema": {
+              "url": "https://busy-emerging-tick.ngrok-free.app/timer",
+              "method": "POST",
+              "path_params_schema": {},
+              "query_params_schema": null,
+              "request_body_schema": {
+                "type": "object",
+                "properties": {
+                  "duration": {
+                    "type": "integer",
+                    "description": "Duration in seconds for the timer",
+                    "dynamic_variable": "",
+                    "constant_value": ""
+                  },
+                  "message": {
+                    "type": "string",
+                    "description": "Optional message to display when timer completes",
+                    "dynamic_variable": "",
+                    "constant_value": ""
+                  }
+                },
+                "required": [
+                  "duration"
+                ]
+              },
+              "request_headers": {
+                "X-API-Key": {
+                  "secret_id": "Bk7RQlbVyDosz9bbB3q1"
+                }
+              }
+            },
+            "dynamic_variables": {
+              "dynamic_variable_placeholders": {}
+            }
+          },
+          {
+            "id": "TXR9KpLmNqOjPkQrStUv",
+            "type": "webhook",
+            "name": "job_status",
+            "description": "This tool retrieves a list of all previous tasks (timers, calculations, etc.) with their current status. Each job entry includes the tool name, status, status message, and timestamps. Use this when the user asks about the status of any previous tasks.",
+            "api_schema": {
+              "url": "https://busy-emerging-tick.ngrok-free.app/jobs",
+              "method": "GET",
+              "path_params_schema": {},
+              "query_params_schema": null,
+              "request_body_schema": null,
+              "request_headers": {
+                "X-API-Key": {
+                  "secret_id": "Bk7RQlbVyDosz9bbB3q1"
+                }
+              }
+            },
+            "dynamic_variables": {
+              "dynamic_variable_placeholders": {}
+            }
+          }
+        ],
+        "tool_ids": [
+          "wvKzBJAMcgLYZBgaBFhm",
+          "LzePPJfBwmHgz4G0ukr7",
+          "LULPlzMZKR0bBBK0lkIa",
+          "OfeUJFMusXQEy6jnhOUC",
+          "TmR9KpLmNqOjPkQrStUv",
+          "TXR9KpLmNqOjPkQrStUv"
+        ],
+        "knowledge_base": [],
+        "custom_llm": null,
+        "ignore_default_personality": false,
+        "rag": {
+          "enabled": false,
+          "embedding_model": "e5_mistral_7b_instruct",
+          "max_vector_distance": 0.6,
+          "max_documents_length": 50000
+        }
+      }
+    }
+  }
+}

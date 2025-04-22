@@ -1,21 +1,19 @@
 """
-Router for running Goose MCP commands.
+Goose tool for generating random goose-related content.
+
+This tool provides various goose-related functionalities.
 """
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException
-from .decorator import tool, Parameter, JobSettings
-from ..job_utils import JobResponse
-from ..job_registry import job_registry, JobStatus
+import logging
+from typing import Dict, Any
+from .core import tool, Parameter, JobSettings
 import subprocess
 from rich.console import Console
 
 # Initialize console
 console = Console()
 
-router = APIRouter(
-    prefix="/goose",
-    tags=["goose"]
-)
+logger = logging.getLogger(__name__)
 
 @tool(
     name="goose",
@@ -29,11 +27,10 @@ router = APIRouter(
     )
 )
 async def run_goose_command(
-    job_id: str,
-    target: str = Parameter(
-        name="target",
+    text: str = Parameter(
+        name="text",
         type="string",
-        description="The target to run the Goose command on.",
+        description="Query, prompt or command to run with Goose.",
         required=True
     )
 ) -> dict:
@@ -41,7 +38,7 @@ async def run_goose_command(
     try:
         # Run the goose command
         process = subprocess.run(
-            ["goose", "run", "-t", target],
+            ["goose", "run", "-t", text],
             capture_output=True,
             text=True,
             check=True
@@ -49,25 +46,11 @@ async def run_goose_command(
         
         return {
             "status": "success",
-            "target": target,
+            "text": text,
             "output": process.stdout.strip()
         }
     except subprocess.CalledProcessError as e:
         raise ValueError(f"Command failed: {e.stderr.strip()}")
     except Exception as e:
         raise ValueError(f"Unexpected error: {str(e)}")
-
-@router.get("/status/{job_id}")
-async def get_goose_status(job_id: str) -> JobResponse:
-    """Get the status of a Goose command job"""
-    job = job_registry.get_job(job_id)
-    if not job:
-        raise HTTPException(status_code=404, detail="Job not found")
-        
-    return JobResponse(
-        job_id=job.job_id,
-        status=job.status,
-        result=job.result,
-        error=job.error
-    )
 

@@ -6,10 +6,11 @@ import os
 import pkgutil
 from .middleware import verify_api_key, log_request_metadata
 from .exceptions import ResourceNotFoundError, BadRequestError
-from .agent import agent
+from .agent import update_agent_tools
 from rich.traceback import install
 from rich.console import Console
 from contextlib import asynccontextmanager
+from .tools import registry
 
 # Initialize Rich console and install traceback handler
 console = Console()
@@ -19,7 +20,7 @@ install(show_locals=False, width=console.width)
 async def lifespan(app: FastAPI):
     """Lifespan context manager for FastAPI app."""
     # Startup
-    await agent.update_agent_tools()
+    await update_agent_tools()
     yield
     # Shutdown
     pass
@@ -85,6 +86,12 @@ for module_info in pkgutil.iter_modules([os.path.join(os.path.dirname(__file__),
         module = importlib.import_module(f".tools.{module_info.name}", package="gavin_the_fish")
         if hasattr(module, 'router'):
             app.include_router(module.router)
+
+# Include routers from the tool registry
+for tool_name in registry.list_tools():
+    router = registry.get_router(tool_name)
+    if router:
+        app.include_router(router)
 
 if __name__ == "__main__":
     import uvicorn

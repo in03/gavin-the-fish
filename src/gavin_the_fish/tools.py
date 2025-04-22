@@ -1,7 +1,8 @@
 """
-Tool decorator module for the Gavin the Fish system.
+Tool definitions and registration for the Gavin the Fish system.
 
-This module contains the tool decorator and related functionality.
+This module provides the core functionality for defining and registering tools
+that can be used by the ElevenLabs agent.
 """
 
 from typing import Any, Callable, Dict, List, Optional, Type, TypeVar, Union
@@ -13,31 +14,11 @@ logger = logging.getLogger(__name__)
 
 class Parameter(BaseModel):
     """Defines a parameter for a tool."""
-    name: Optional[str] = None
-    type: Optional[str] = None
+    name: str
+    type: str
     description: str
     required: bool = True
     enum: Optional[List[str]] = None
-    _inferred_name: Optional[str] = None
-    _inferred_type: Optional[str] = None
-
-    def __init__(self, **data):
-        super().__init__(**data)
-        # If name or type are not provided, they will be set during validation
-        self._inferred_name = data.get('_inferred_name')
-        self._inferred_type = data.get('_inferred_type')
-
-    def model_post_init(self, __context) -> None:
-        """Set inferred values after initialization."""
-        if self._inferred_name and not self.name:
-            self.name = self._inferred_name
-        if self._inferred_type and not self.type:
-            self.type = self._inferred_type
-
-    @classmethod
-    def from_inference(cls, name: str, type: str, **kwargs) -> 'Parameter':
-        """Create a Parameter instance with inferred name and type."""
-        return cls(_inferred_name=name, _inferred_type=type, **kwargs)
 
 class ToolSchema(BaseModel):
     """Defines the schema for a tool."""
@@ -59,29 +40,29 @@ class ToolRegistry:
         self._job_settings: Dict[str, JobSettings] = {}
 
     def register(self, schema: ToolSchema, implementation: Callable, settings: Optional[JobSettings] = None) -> None:
-        """Register a tool with the registry."""
+        """Register a tool with its schema and implementation."""
         self._tools[schema.name] = schema
         self._implementations[schema.name] = implementation
         if settings:
             self._job_settings[schema.name] = settings
 
     def get_schema(self, name: str) -> Optional[ToolSchema]:
-        """Get a tool schema by name."""
+        """Get the schema for a tool by name."""
         return self._tools.get(name)
 
     def get_implementation(self, name: str) -> Optional[Callable]:
-        """Get a tool implementation by name."""
+        """Get the implementation for a tool by name."""
         return self._implementations.get(name)
 
     def get_job_settings(self, name: str) -> Optional[JobSettings]:
-        """Get job settings for a tool by name."""
+        """Get the job settings for a tool by name."""
         return self._job_settings.get(name)
 
     def list_tools(self) -> List[str]:
         """List all registered tool names."""
         return list(self._tools.keys())
 
-# Create a global registry instance
+# Global registry instance
 registry = ToolRegistry()
 
 def tool(
@@ -110,7 +91,7 @@ def tool(
             sig = inspect.signature(func)
             tool_parameters = []
             for param_name, param in sig.parameters.items():
-                if param_name == "self" or param_name == "job_id":
+                if param_name in ['self', 'job_id', 'request', 'background_tasks']:
                     continue
                     
                 param_type = "string"
@@ -120,22 +101,12 @@ def tool(
                     elif hasattr(param.annotation, "_name"):
                         param_type = param.annotation._name.lower()
                 
-                # Get the Parameter instance if it exists
-                param_default = param.default
-                if isinstance(param_default, Parameter):
-                    # If it's already a Parameter, ensure it has name and type
-                    if not param_default.name:
-                        param_default.name = param_name
-                    if not param_default.type:
-                        param_default.type = param_type
-                    tool_parameters.append(param_default)
-                else:
-                    tool_parameters.append(Parameter.from_inference(
-                        name=param_name,
-                        type=param_type,
-                        description=f"Parameter {param_name}",
-                        required=param.default == inspect.Parameter.empty
-                    ))
+                tool_parameters.append(Parameter(
+                    name=param_name,
+                    type=param_type,
+                    description=f"Parameter {param_name}",
+                    required=param.default == inspect.Parameter.empty
+                ))
         else:
             tool_parameters = parameters
 

@@ -1,20 +1,18 @@
 """
-Router for calculating Fibonacci numbers.
+Fibonacci sequence generator tool.
+
+This tool generates a Fibonacci sequence of a specified length.
 """
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException
-from .decorator import tool, Parameter, JobSettings
-from ..job_utils import JobResponse
-from ..job_registry import job_registry, JobStatus
+import logging
+from typing import Dict, Any
+from .core import tool, Parameter, JobSettings
 from rich.console import Console
 
 # Initialize console
 console = Console()
 
-router = APIRouter(
-    prefix="/fibonacci",
-    tags=["fibonacci"]
-)
+logger = logging.getLogger(__name__)
 
 def calculate_fibonacci(n: int) -> int:
     """Calculate the nth Fibonacci number"""
@@ -30,6 +28,38 @@ def calculate_fibonacci(n: int) -> int:
 
 @tool(
     name="fibonacci",
+    description="Generate a Fibonacci sequence of specified length",
+    parameters=[
+        Parameter(
+            name="N",
+            type="integer",
+            description="Length of the Fibonacci sequence to generate",
+            required=True
+        )
+    ],
+    settings=JobSettings(
+        timeout_seconds=30,
+        max_retries=3,
+        retry_delay_seconds=5
+    )
+)
+async def generate_fibonacci(N: int) -> Dict[str, Any]:
+    """Generate a Fibonacci sequence of length N."""
+    if N < 0:
+        raise ValueError("N must be a non-negative integer")
+
+    sequence = [0, 1]
+    if N <= 2:
+        return {"sequence": sequence[:N]}
+
+    for i in range(2, N):
+        next_num = sequence[i-1] + sequence[i-2]
+        sequence.append(next_num)
+
+    return {"sequence": sequence}
+
+@tool(
+    name="fibonacci_calculate",
     description="Calculate the nth Fibonacci number.",
     settings=JobSettings(
         sync_threshold=5,
@@ -39,38 +69,17 @@ def calculate_fibonacci(n: int) -> int:
         cancelable=True
     )
 )
-async def run_fibonacci_calculation(
-    job_id: str,
-    n: int = Parameter(
-        name="n",
-        type="integer",
-        description="The position in the Fibonacci sequence to calculate (must be > 0 and <= 1000).",
-        required=True
-    )
-) -> dict:
+async def run_fibonacci_calculation(n: int) -> dict:
     """Calculate the nth Fibonacci number"""
-    # Validate input
-    if n > 1000:
-        raise ValueError("Input too large - please use n <= 1000")
-        
+    # Validate input - allow much larger numbers but set a reasonable limit
+    # 100,000 should take a few minutes on modern hardware for large values
+    if n > 100000:
+        raise ValueError("Input too large - please use n <= 100000")
+
     # Calculate Fibonacci number
     result = calculate_fibonacci(n)
-    
+
     return {
         "n": n,
         "result": result
     }
-
-@router.get("/status/{job_id}")
-async def get_fibonacci_status(job_id: str) -> JobResponse:
-    """Get the status of a Fibonacci calculation job"""
-    job = job_registry.get_job(job_id)
-    if not job:
-        raise HTTPException(status_code=404, detail="Job not found")
-        
-    return JobResponse(
-        job_id=job.job_id,
-        status=job.status,
-        result=job.result,
-        error=job.error
-    )
