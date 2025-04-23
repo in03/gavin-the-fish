@@ -71,8 +71,11 @@ async def generate_fibonacci(N: int) -> Dict[str, Any]:
 )
 async def run_fibonacci_calculation(n: int) -> dict:
     """Calculate the nth Fibonacci number"""
-    # Validate input - allow much larger numbers but set a reasonable limit
-    # 100,000 should take a few minutes on modern hardware for large values
+    # Validate input
+    if n <= 0:
+        raise ValueError("Input must be a positive integer")
+
+    # Check for large inputs
     if n > 100000:
         raise ValueError("Input too large - please use n <= 100000")
 

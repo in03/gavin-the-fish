@@ -243,11 +243,20 @@ class ToolRegistry:
         if not isinstance(result, dict):
             result = {"value": result}
 
+        # Check if result is already a standardized response to avoid nesting
+        if isinstance(result, dict) and "tool_name" in result and "status" in result and "result" in result:
+            # This is already a standardized result, so we'll extract the actual result
+            # to avoid nesting standardized results within each other
+            actual_result = result["result"]
+        else:
+            # This is a raw result from the tool function
+            actual_result = result
+
         # Build standardized result
         standardized = {
             "tool_name": tool_name,
             "status": status,
-            "result": result,
+            "result": actual_result,
             "parameters": parameters,
             "is_job": is_job
         }
