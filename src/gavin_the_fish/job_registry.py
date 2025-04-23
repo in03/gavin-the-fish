@@ -41,19 +41,51 @@ class Job:
         self.result = result
         self.error = error
         self.updated_at = datetime.now()
-        
+
         if self.on_status_change:
             self.on_status_change(self)
-            
+
         # Send notification if job is complete and notifications are enabled
         if self.notify_on_completion and status in [JobStatus.SUCCESS, JobStatus.FAILED]:
             self._send_notification()
+
+    def _format_with_context(self, template_str):
+        """Format a string with combined context from input and result"""
+        if not template_str or '{' not in template_str or '}' not in template_str:
+            return template_str
+
+        # Create a combined context from input and result
+        context = {}
+        if self.input:
+            context.update(self.input)
+        if self.result:
+            context.update(self.result)
+
+        try:
+            return template_str.format(**context)
+        except KeyError:
+            # Fallback: replace only the keys that exist
+            import re
+            pattern = r'\{([^{}]+)\}'
+
+            def replace_if_exists(match):
+                key = match.group(1)
+                return str(context[key]) if key in context else f"{{{key}}}"
+
+            return re.sub(pattern, replace_if_exists, template_str)
+        except Exception as e:
+            print(f"Warning: Error formatting message: {e}")
+            return template_str
 
     def _send_notification(self):
         """Send a native notification for job completion"""
         try:
             title = self.notification_title or f"{self.tool_name} job completed"
-            message = self.notification_message or self.get_status_message()
+            message_template = self.notification_message or self.get_status_message()
+
+            # Format the message with the combined context
+            message = self._format_with_context(message_template)
+
             rumps.notification(title, subtitle="Gavin the Fish", message=message)
         except Exception as e:
             print(f"Failed to send notification: {e}")
@@ -166,4 +198,4 @@ class JobRegistry:
             "updated_at": job.updated_at.isoformat()
         } for job in self._jobs.values()]
 
-job_registry = JobRegistry() 
+job_registry = JobRegistry()
