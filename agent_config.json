@@ -9,7 +9,7 @@
       "keywords": []
     },
     "turn": {
-      "turn_timeout": 7.0,
+      "turn_timeout": 15.0,
       "silence_end_call_timeout": -1.0,
       "mode": "turn"
     },
